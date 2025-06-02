@@ -349,7 +349,7 @@ End of RAM
 +------------------------------+
 |   Dynamic memory (".heap")   |
 +------------------------------+
-| Uninitialized data (".data") |
+|  Uninitialized data (".bss") |
 +------------------------------+
 |  Initialized data (".data")  |
 +------------------------------+
