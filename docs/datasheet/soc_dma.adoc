@@ -124,7 +124,7 @@ when the `DMA_CONF_BSWAP` bit is set.
                                   <|`15:2`  _reserved_                                ^| r/- <| _reserved_, read as zero
                                   <|`19:16` `DMA_CTRL_DFIFO_MSB : DMA_CTRL_DFIFO_LSB` ^| r/- <|
                                   <|`26:20` _reserved_                                ^| r/- <| _reserved_, read as zero
-                                  <|`27`    `DMA_CTRL_DEMPTY``                        ^| r/- <| Descriptor FIFO is empty
+                                  <|`27`    `DMA_CTRL_DEMPTY`                        ^| r/- <| Descriptor FIFO is empty
                                   <|`28`    `DMA_CTRL_DFULL`                          ^| r/- <| Descriptor FIFO is full
                                   <|`29`    `DMA_CTRL_ERROR`                          ^| r/c <| Bus access error during transfer or incomplete descriptor data; clear by writing `1`
                                   <|`30`    `DMA_CTRL_DONE`                           ^| r/c <| All transfers executed; clear by writing `1`
