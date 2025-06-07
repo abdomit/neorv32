@@ -39,6 +39,7 @@ entity neorv32_sysinfo is
     IO_UART0_EN       : boolean; -- implement primary universal asynchronous receiver/transmitter (UART0)
     IO_UART1_EN       : boolean; -- implement secondary universal asynchronous receiver/transmitter (UART1)
     IO_SPI_EN         : boolean; -- implement serial peripheral interface (SPI)
+    IO_SPI2_EN        : boolean; -- implement serial peripheral interface #2 (SPI2)
     IO_SDI_EN         : boolean; -- implement serial data interface (SDI)
     IO_TWI_EN         : boolean; -- implement two-wire interface (TWI)
     IO_TWD_EN         : boolean; -- implement two-wire device (TWD)

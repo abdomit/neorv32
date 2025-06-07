@@ -111,6 +111,9 @@ entity neorv32_top is
     IO_UART1_TX_FIFO      : natural range 1 to 2**15       := 1;           -- TX FIFO depth, has to be a power of two, min 1
     IO_SPI_EN             : boolean                        := false;       -- implement serial peripheral interface (SPI)
     IO_SPI_FIFO           : natural range 1 to 2**15       := 1;           -- RTX FIFO depth, has to be a power of two, min 1
+    IO_SPI2_EN             : boolean                        := false;       -- implement serial peripheral interface (SPI2)
+    IO_SPI2_FIFO           : natural range 1 to 2**15       := 1;           -- RTX FIFO depth, has to be a power of two, min 1
+
     IO_SDI_EN             : boolean                        := false;       -- implement serial data interface (SDI)
     IO_SDI_FIFO           : natural range 1 to 2**15       := 1;           -- RTX FIFO depth, has to be zero or a power of two, min 1
     IO_TWI_EN             : boolean                        := false;       -- implement two-wire interface (TWI)
@@ -194,6 +197,12 @@ entity neorv32_top is
     spi_dat_i      : in  std_ulogic := 'L';                                 -- controller data in, peripheral data out
     spi_csn_o      : out std_ulogic_vector(7 downto 0);                     -- chip-select, low-active
 
+    -- SPI2 (available if IO_SPI2_EN = true) --
+    spi2_clk_o     : out std_ulogic;                                        -- SPI2 serial clock
+    spi2_dat_o     : out std_ulogic;                                        -- controller data out, peripheral data in
+    spi2_dat_i     : in  std_ulogic := 'L';                                 -- controller data in, peripheral data out
+    spi2_csn_o     : out std_ulogic_vector(7 downto 0);                     -- chip-select, low-active
+
     -- SDI (available if IO_SDI_EN = true) --
     sdi_clk_i      : in  std_ulogic := 'L';                                 -- SDI serial clock
     sdi_dat_o      : out std_ulogic;                                        -- controller data out, peripheral data in
@@ -271,10 +280,11 @@ architecture neorv32_top_rtl of neorv32_top is
   -- clock system --
   signal clk_gen : std_ulogic_vector(7 downto 0); -- scaled clock-enables
   --
-  type clk_gen_en_enum_t is (CG_UART0, CG_UART1, CG_SPI, CG_TWI, CG_TWD, CG_PWM, CG_WDT, CG_NEOLED, CG_GPTMR, CG_ONEWIRE);
+  type clk_gen_en_enum_t is (CG_UART0, CG_UART1, CG_SPI, CG_SPI2, CG_TWI, CG_TWD, CG_PWM, CG_WDT, 
+CG_NEOLED, CG_GPTMR, CG_ONEWIRE);
   type clk_gen_en_t is array (clk_gen_en_enum_t) of std_ulogic;
   signal clk_gen_en  : clk_gen_en_t;
-  signal clk_gen_en2 : std_ulogic_vector(9 downto 0);
+  signal clk_gen_en2 : std_ulogic_vector(10 downto 0);
 
   -- debug module interface (DMI) --
   signal dmi_req : dmi_req_t;
@@ -297,7 +307,7 @@ architecture neorv32_top_rtl of neorv32_top is
   -- bus: IO devices --
   type io_devices_enum_t is (
     IODEV_BOOTROM, IODEV_OCD, IODEV_SYSINFO, IODEV_NEOLED, IODEV_GPIO, IODEV_WDT, IODEV_TRNG,
-    IODEV_TWI, IODEV_SPI, IODEV_SDI, IODEV_UART1, IODEV_UART0, IODEV_CLINT, IODEV_ONEWIRE,
+    IODEV_TWI, IODEV_SPI, IODEV_SPI2, IODEV_SDI, IODEV_UART1, IODEV_UART0, IODEV_CLINT, IODEV_ONEWIRE,
     IODEV_GPTMR, IODEV_PWM, IODEV_DMA, IODEV_SLINK, IODEV_CFS, IODEV_TWD
   );
   type iodev_req_t is array (io_devices_enum_t) of bus_req_t;
@@ -347,6 +357,7 @@ begin
       cond_sel_string_f(IO_UART0_EN,     "UART0 ",      "") &
       cond_sel_string_f(IO_UART1_EN,     "UART1 ",      "") &
       cond_sel_string_f(IO_SPI_EN,       "SPI ",        "") &
+      cond_sel_string_f(IO_SPI2_EN,      "SPI2 ",       "") &
       cond_sel_string_f(IO_SDI_EN,       "SDI ",        "") &
       cond_sel_string_f(IO_TWI_EN,       "TWI ",        "") &
       cond_sel_string_f(IO_TWD_EN,       "TWD ",        "") &
@@ -434,9 +445,9 @@ begin
     );
 
     -- fresh clocks anyone? --
-    clk_gen_en2 <= clk_gen_en(CG_UART0) & clk_gen_en(CG_UART1) & clk_gen_en(CG_SPI) & clk_gen_en(CG_TWI)    &
-                   clk_gen_en(CG_TWD)   & clk_gen_en(CG_PWM)   & clk_gen_en(CG_WDT) & clk_gen_en(CG_NEOLED) &
-                   clk_gen_en(CG_GPTMR) & clk_gen_en(CG_ONEWIRE);
+    clk_gen_en2 <= clk_gen_en(CG_UART0)  & clk_gen_en(CG_UART1) & clk_gen_en(CG_SPI) & clk_gen_en(CG_SPI2)   &
+                   clk_gen_en(CG_TWI)    & clk_gen_en(CG_TWD)   & clk_gen_en(CG_PWM) & clk_gen_en(CG_WDT)    &
+                   clk_gen_en(CG_NEOLED) & clk_gen_en(CG_GPTMR) & clk_gen_en(CG_ONEWIRE);
 
   end generate; -- /soc_generators
 
@@ -902,7 +913,7 @@ begin
       OUTREG_EN => true,
       DEV_SIZE  => iodev_size_c,
       DEV_00_EN => bootrom_en_c,    DEV_00_BASE => base_io_bootrom_c,
-      DEV_01_EN => false,           DEV_01_BASE => (others => '0'), -- reserved
+      DEV_01_EN => IO_SPI2_EN,      DEV_01_BASE => base_io_spi2_c,
       DEV_02_EN => false,           DEV_02_BASE => (others => '0'), -- reserved
       DEV_03_EN => false,           DEV_03_BASE => (others => '0'), -- reserved
       DEV_04_EN => false,           DEV_04_BASE => (others => '0'), -- reserved
@@ -940,7 +951,7 @@ begin
       main_req_i   => io_req,
       main_rsp_o   => io_rsp,
       dev_00_req_o => iodev_req(IODEV_BOOTROM), dev_00_rsp_i => iodev_rsp(IODEV_BOOTROM),
-      dev_01_req_o => open,                     dev_01_rsp_i => rsp_terminate_c, -- reserved
+      dev_01_req_o => iodev_req(IODEV_SPI2),    dev_01_rsp_i => iodev_rsp(IODEV_SPI2),
       dev_02_req_o => open,                     dev_02_rsp_i => rsp_terminate_c, -- reserved
       dev_03_req_o => open,                     dev_03_rsp_i => rsp_terminate_c, -- reserved
       dev_04_req_o => open,                     dev_04_rsp_i => rsp_terminate_c, -- reserved
@@ -1237,6 +1248,40 @@ begin
     end generate;
 
 
+    -- Serial Peripheral Interface (SPI2) ------------------------------------------------------
+    -- -------------------------------------------------------------------------------------------
+    neorv32_spi2_enabled:
+    if IO_SPI2_EN generate
+      neorv32_spi2_inst: entity neorv32.neorv32_spi
+      generic map (
+        IO_SPI_FIFO => IO_SPI2_FIFO
+      )
+      port map (
+        clk_i       => clk_i,
+        rstn_i      => rstn_sys,
+        bus_req_i   => iodev_req(IODEV_SPI2),
+        bus_rsp_o   => iodev_rsp(IODEV_SPI2),
+        clkgen_en_o => clk_gen_en(CG_SPI2),
+        clkgen_i    => clk_gen,
+        spi_clk_o   => spi2_clk_o,
+        spi_dat_o   => spi2_dat_o,
+        spi_dat_i   => spi2_dat_i,
+        spi_csn_o   => spi2_csn_o,
+        irq_o       => open
+      );
+    end generate;
+
+    neorv32_spi2_disabled:
+    if not IO_SPI2_EN generate
+      iodev_rsp(IODEV_SPI2) <= rsp_terminate_c;
+      spi_clk_o            <= '0';
+      spi_dat_o            <= '0';
+      spi_csn_o            <= (others => '1');
+      clk_gen_en(CG_SPI2)  <= '0';
+      firq(FIRQ_SPI)       <= '0';
+    end generate;
+
+
     -- Two-Wire Interface (TWI) ---------------------------------------------------------------
     -- -------------------------------------------------------------------------------------------
     neorv32_twi_enabled:
@@ -1506,6 +1551,7 @@ begin
         IO_UART0_EN       => IO_UART0_EN,
         IO_UART1_EN       => IO_UART1_EN,
         IO_SPI_EN         => IO_SPI_EN,
+        IO_SPI2_EN         => IO_SPI2_EN,
         IO_SDI_EN         => IO_SDI_EN,
         IO_TWI_EN         => IO_TWI_EN,
         IO_TWD_EN         => IO_TWD_EN,

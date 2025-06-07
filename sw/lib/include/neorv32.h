@@ -29,7 +29,7 @@ extern "C" {
 /**@{*/
 #define IO_BASE_ADDRESS      (0XFFE00000U)
 #define NEORV32_BOOTROM_BASE (0xFFE00000U) /**< Bootloader ROM (BOOTROM) */
-//#define NEORV32_???_BASE   (0xFFE10000U) /**< reserved */
+#define NEORV32_SPI2_BASE    (0xFFE10000U) /**< Serial Peripheral Interface Controller #2 (SPI2) */
 //#define NEORV32_???_BASE   (0xFFE20000U) /**< reserved */
 //#define NEORV32_???_BASE   (0xFFE30000U) /**< reserved */
 //#define NEORV32_???_BASE   (0xFFE40000U) /**< reserved */

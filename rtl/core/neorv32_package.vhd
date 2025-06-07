@@ -59,7 +59,7 @@ package neorv32_package is
   -- IO Address Map (base address must be aligned to the region's size) --
   constant iodev_size_c         : natural := 64*1024; -- size of a single IO device (bytes)
   constant base_io_bootrom_c    : std_ulogic_vector(31 downto 0) := x"ffe00000";
---constant base_io_???_c        : std_ulogic_vector(31 downto 0) := x"ffe10000"; -- reserved
+  constant base_io_spi2_c       : std_ulogic_vector(31 downto 0) := x"ffe10000";
 --constant base_io_???_c        : std_ulogic_vector(31 downto 0) := x"ffe20000"; -- reserved
 --constant base_io_???_c        : std_ulogic_vector(31 downto 0) := x"ffe30000"; -- reserved
 --constant base_io_???_c        : std_ulogic_vector(31 downto 0) := x"ffe40000"; -- reserved
